@@ -9,6 +9,10 @@ Opinionated guidance for building production .NET 10 services with Clean
 Architecture and CQRS. Every rule below exists because its absence caused a real
 bug in a real codebase.
 
+Targets .NET 10, EF Core 10 and C# 14 (released November 2025; .NET 10 and
+EF Core 10 are LTS). Features
+marked "EF Core 10" do not exist in earlier versions.
+
 The default database provider is SQL Server. Where a rule differs on
 PostgreSQL, a short **PostgreSQL:** note says how.
 
@@ -92,7 +96,9 @@ tenant-owned table. Database-per-tenant is out of scope for v1.
 11. **Cross-cutting fields are stamped by interceptors**, not handlers:
     tenant, audit, soft delete, domain-event-to-outbox (v2). Use
     `TimeProvider`, not `DateTime.UtcNow`. On SQL Server, let EF generate GUID
-    keys (its sequential generator matches `uniqueidentifier` sort order).
+    keys on add (its `SequentialGuidValueGenerator` is optimized for
+    `uniqueidentifier` clustered indexes); do not assign `Guid.NewGuid()` in
+    the domain.
     **PostgreSQL:** use `Guid.CreateVersion7()`.
 12. **Optimistic concurrency reaches the client.** Expose the row version
     (`rowversion`) as an `ETag`; require `If-Match` on `PUT`, `PATCH` and
@@ -174,6 +180,7 @@ Full details: `references/solution-structure.md` (planned).
 | Errors | `Result<T>` + `ProblemDetails` | Exceptions only for truly exceptional failures |
 | Mapping | Explicit (`Select`, factory methods) | Mapster, for large read-only DTOs |
 | Paging | Offset with clamped `PageRequest` | Keyset, for large tables or infinite scroll |
+| Test assertions | AwesomeAssertions (Apache 2.0) or Shouldly (BSD-3-Clause) | FluentAssertions 7.x if already pinned; never 8+ (commercial license) |
 
 ## Reference index
 
