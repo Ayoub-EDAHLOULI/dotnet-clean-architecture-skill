@@ -95,11 +95,14 @@ tenant-owned table. Database-per-tenant is out of scope for v1.
 **Persistence**
 11. **Cross-cutting fields are stamped by interceptors**, not handlers:
     tenant, audit, soft delete, domain-event-to-outbox (v2). Use
-    `TimeProvider`, not `DateTime.UtcNow`. On SQL Server, let EF generate GUID
-    keys on add (its `SequentialGuidValueGenerator` is optimized for
-    `uniqueidentifier` clustered indexes); do not assign `Guid.NewGuid()` in
-    the domain.
-    **PostgreSQL:** use `Guid.CreateVersion7()`.
+    `TimeProvider`, not `DateTime.UtcNow`.
+    **Keys are assigned by EF value generation** when the entity is added to
+    the context. Domain code never sets `Id`; anything that needs it (domain
+    events, outbox, responses) reads it after `Add`, in practice at
+    `SaveChanges`. On SQL Server EF's `SequentialGuidValueGenerator` produces
+    sequential GUIDs suited to `uniqueidentifier` clustered indexes.
+    **PostgreSQL:** Npgsql 9.0+ generates UUIDv7 keys by default; keep the
+    provider default.
 12. **Optimistic concurrency reaches the client.** Expose the row version
     (`rowversion`) as an `ETag`; require `If-Match` on `PUT`, `PATCH` and
     `DELETE`. Missing `If-Match` returns 428 Precondition Required; a stale one
@@ -195,7 +198,7 @@ yet; rely on the rules above until they do.
 | `references/pipeline-behaviors.md` (planned) | Validation, logging, transaction behaviors |
 | `references/error-handling.md` (planned) | `Result`, `Error`, `ProblemDetails` mapping |
 | `references/persistence-efcore.md` (planned) | DbContext, configurations, interceptors, indexes, migrations |
-| `references/multi-tenancy.md` (planned) | Anything touching tenant resolution or tenant-owned data |
+| `references/multi-tenancy.md` | Anything touching tenant resolution or tenant-owned data |
 | `references/api-endpoints.md` (planned) | Endpoints, versioning, OpenAPI, authorization |
 | `references/testing.md` (planned) | Unit, integration, architecture and tenant-isolation tests |
 | `references/audit-checklist.md` (planned) | Reviewing an existing codebase |
